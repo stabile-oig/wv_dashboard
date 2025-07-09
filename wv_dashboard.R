@@ -64,10 +64,11 @@ county_fips_df <- json.counties$features %>%
   filter(State == "54")
 
 # map counties onto AUSA districts
-county_districts <- left_join(districts, county_fips_df, by = "County")
+county_districts <- left_join(districts, county_fips_df, by = "County") %>%
+  clean_names()
 
 ## Changing Alderson to 54075
-county_districts$FIPS[which(county_districts$`City/Town` == "Alderson")] <- "54075"
+county_districts$fips[which(county_districts$city_town == "Alderson")] <- "54075"
 
 
 # load and clean data for search table 
@@ -114,11 +115,11 @@ districtMap <- plot_ly() %>%
   add_trace(
     type="choroplethmapbox",
     geojson=json.counties,
-    locations=county_districts$`FIPS`,
-    z=as.numeric(as.factor(county_districts$`AUSA District`)),
+    locations=county_districts$fips,
+    z=as.numeric(as.factor(county_districts$ausa_district)),
     colorscale="Set1",
     featureidkey="id",
-    text=~paste("County:", county_districts$County, "<br>AUSA District:", county_districts$`AUSA District`),
+    text=~paste("County:", county_districts$county, "<br>AUSA District:", county_districts$ausa_district),
     hovertemplate="%{text}<extra></extra>",
     showscale = FALSE
   ) %>% 
@@ -149,15 +150,15 @@ zipCountyDols$County <- gsub(" County", "", zipCountyDols$county, ignore.case = 
 
 ## consolidating county_district data
 countyBydistrict <- county_districts %>%
-  select(County, `AUSA District`, FIPS) %>%
+  select(county, ausa_district, fips) %>%
   distinct()
 
 ## Combining datasets by counties
-County_dolls <- full_join(zipCountyDols, countyBydistrict, by = "County")
+County_dolls <- full_join(zipCountyDols, countyBydistrict, by = c("County" = "county" ))
 
 ## Grouping Dollars and POs by County
 By.County <- County_dolls %>% 
-  group_by(County,FIPS,`AUSA District`) %>%
+  group_by(county, fips, ausa_district) %>%
   summarise(
     "Total Dollars" = sum(`Total Dollars`, na.rm = TRUE),
     "Total POs" = sum(`Total POs`, na.rm = TRUE)) %>%
@@ -165,18 +166,18 @@ By.County <- County_dolls %>%
 
 ## Removing "Pocahontas/Greenbrier" from By.County
 By.County <- By.County %>%
-  filter(County != "Pocahontas;Greenbrier")
+  filter(county != "Pocahontas;Greenbrier")
 
 ## Plotting Dollars by County
 countyDolMap <- plot_ly() %>% 
   add_trace(
     type="choroplethmapbox",
     geojson=json.counties,
-    locations=By.County$FIPS,
+    locations=By.County$fips,
     z=as.numeric(as.factor(By.County$`Total Dollars`)),
     colorscale="Viridis",
     featureidkey="id",
-    text=~paste("County:", By.County$County, "<br>AUSA District:", By.County$`AUSA District`, 
+    text=~paste("County:", By.County$county, "<br>AUSA District:", By.County$ausa_district, 
                 "<br>Total Dollars: $", formatC(By.County$`Total Dollars`, format = "f", big.mark = ",", digits = 2),"<br>Total POs: ", By.County$`Total POs`),
     hovertemplate="%{text}<extra></extra>"
   ) %>% 
