@@ -54,12 +54,12 @@ total_table <- function(col) {
 }
 
 ## Getting County FIPS codes
-json.counties <- jsonlite::fromJSON(url("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"))
-county_fips_df <- json.counties$features %>%
-  transmute(
-    FIPS = id,
-    County = properties$NAME,
-    State = properties$STATE
+json.counties <- rjson::fromJSON(url("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"))
+county_fips_df <- data.frame(
+  FIPS = sapply(json.counties$features, function(x) x$id),
+  County = sapply(json.counties$features, function(x) x$properties$NAME),
+  State = sapply(json.counties$features, function(x) x$properties$STATE),
+  stringsAsFactors = FALSE
   ) %>%
   filter(State == "54")
 
