@@ -54,12 +54,12 @@ total_table <- function(col) {
 }
 
 ## Getting County FIPS codes
-json.counties <- jsonlite::fromJSON(url("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"))
-county_fips_df <- json.counties$features %>%
-  transmute(
-    FIPS = id,
-    County = properties$NAME,
-    State = properties$STATE
+json.counties <- rjson::fromJSON(url("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"))
+county_fips_df <- data.frame(
+  FIPS = sapply(json.counties$features, function(x) x$id),
+  County = sapply(json.counties$features, function(x) x$properties$NAME),
+  State = sapply(json.counties$features, function(x) x$properties$STATE),
+  stringsAsFactors = FALSE
   ) %>%
   filter(State == "54")
 
@@ -158,7 +158,7 @@ County_dolls <- full_join(zipCountyDols, countyBydistrict, by = c("County" = "co
 
 ## Grouping Dollars and POs by County
 By.County <- County_dolls %>% 
-  group_by(county, fips, ausa_district) %>%
+  group_by(County, fips, ausa_district) %>%
   summarise(
     "Total Dollars" = sum(`Total Dollars`, na.rm = TRUE),
     "Total POs" = sum(`Total POs`, na.rm = TRUE)) %>%
@@ -166,7 +166,7 @@ By.County <- County_dolls %>%
 
 ## Removing "Pocahontas/Greenbrier" from By.County
 By.County <- By.County %>%
-  filter(county != "Pocahontas;Greenbrier")
+  filter(County != "Pocahontas;Greenbrier")
 
 ## Plotting Dollars by County
 countyDolMap <- plot_ly() %>% 
@@ -177,7 +177,7 @@ countyDolMap <- plot_ly() %>%
     z=as.numeric(as.factor(By.County$`Total Dollars`)),
     colorscale="Viridis",
     featureidkey="id",
-    text=~paste("County:", By.County$county, "<br>AUSA District:", By.County$ausa_district, 
+    text=~paste("County:", By.County$County, "<br>AUSA District:", By.County$ausa_district, 
                 "<br>Total Dollars: $", formatC(By.County$`Total Dollars`, format = "f", big.mark = ",", digits = 2),"<br>Total POs: ", By.County$`Total POs`),
     hovertemplate="%{text}<extra></extra>"
   ) %>% 
